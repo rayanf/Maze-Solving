@@ -1,0 +1,105 @@
+#include <iostream>
+
+using namespace std;
+
+class Node{
+    public:
+        int n;
+        int* followings;
+        int* followers;
+        void setFollowings(int * arr){
+            followings = arr;
+        }
+        
+        void setFollowers(int * arr){
+            followers = arr;
+        }
+};
+
+
+
+
+int main()
+{
+
+	int n;
+	cin >> n;
+    // n = 3;
+	int adjMat[n][n];
+	for (int i = 0; i < n; i++) {
+	    for (int j =0; j< n;j++){
+		int u;
+		cin >> u;
+		adjMat[i][j] = u;
+	    }
+	}   
+	    int travesrsal[n][n];
+		for (int i = 0; i < n; i++) {
+	    for (int j =0; j< n;j++){
+	        travesrsal[j][i] = adjMat[i][j];
+	        travesrsal[i][j] = adjMat[j][i];
+	    }}
+	        
+	        
+	        
+    Node nodes[n];
+    
+    for(int i=0;i < n;i++){
+        Node node;
+        node.setFollowings(adjMat[i]);        
+        node.setFollowers(travesrsal[i]);
+        
+        nodes[i] = node;
+            
+    }
+    
+    // find max following
+    int max = 0;
+    for(int i=0;i < n;i++){
+        int summ = 0;
+        for (int j=0;j < n;j++){
+            if (*(nodes[i].followers + j) == 1){
+                summ += 1;}
+        }
+        if (summ > max){
+        max = summ; }
+    }  
+    
+    
+    for(int i=0;i < n;i++){
+        int summ = 0;
+        for (int j=0;j < n;j++){
+            if (*(nodes[i].followers + j) == 1){
+                summ += 1;}
+        }
+        if (summ == max){cout<< i+1<< " "; }
+    }
+    cout << "\n";
+    
+    // find max followers
+    int maxd = 0;
+    for(int i=0;i < n;i++){
+        int summ = 0;
+        for (int j=0;j < n;j++){
+            if (*(nodes[i].followings + j) == 1){
+                summ += 1;}
+        }
+        if (summ > maxd){
+        maxd = summ; }
+    }  
+    for(int i=0;i < n;i++){
+        int summ = 0;
+        for (int j=0;j < n;j++){
+            if (*(nodes[i].followings + j) == 1){
+                summ += 1;}
+        }
+        if (summ == maxd){cout<< i+1<< " "; }
+    }
+    cout << "\n";
+    
+    cout << maxd << "\n" << max; 
+    
+    
+    
+    return 0;
+}

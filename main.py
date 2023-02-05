@@ -137,7 +137,7 @@ def generate_random_env():
             if i == j == 0 or i == j == 9:
                 continue
 
-            if random.randint(0,100) < 10:
+            if random.randint(0,100) < 20:
                 env[i][j] = 3
             elif random.randint(0,100) < 7:
                 env[i][j] = 2
@@ -145,6 +145,42 @@ def generate_random_env():
 
     return env
 
+def train_random(iters,board,randomName):
+    game = Board(walk_punishment,flag_reward,target_reward,back_punishment,been_punishment,alpha,gamma,board)
+    game.reset(iters,board)
+    
+    game.resetQtable(randomName)
+    
+    # game.loadQtable()
+    agent = Agent(game)
+
+    
+    step = 0
+    while True:
+        step += 1 
+
+        state = agent.get_state()
+        choices = agent.get_choices(state)        
+        action = agent.make_action(state,choices,iters)
+        flag,target = game.run(action,step,iters)
+        
+        if flag :
+            step -= 15
+            
+        if target:
+            step = -np.NINF
+        if step > step_treshhold:
+            iters += 1
+            game.saveQtable(randomName)
+            game.reset(iters,board)
+            step = 0
+
+    
+
+
 if __name__ == "__main__":
-    play(iters)
+
+    board = generate_random_env()
+    train_random(iters,board,'random')
+    # play(iters)
     # printQtable('Qtable')

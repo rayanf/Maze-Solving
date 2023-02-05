@@ -8,7 +8,7 @@ import json
 
 
 class Board:
-    def __init__(self,walk_punishment,flag_reward,target_reward,back_punishment,been_punishment,alpha,gamma):
+    def __init__(self,walk_punishment,flag_reward,target_reward,back_punishment,been_punishment,alpha,gamma,boardname):
         self.walk_punishment = walk_punishment
         self.flag_reward = flag_reward
         self.target_reward = target_reward
@@ -44,7 +44,7 @@ class Board:
         self.lastState = None
         
         self.nodes = [[Node(i,j) for i in range(10)] for j in range(10)]
-        self.create_nodes()
+        self.create_nodes(boardname)
         
         self.currentState = (0,0)
         self.seenNodes = []
@@ -163,9 +163,14 @@ class Board:
             return True
         else: return False
 
-    def create_nodes(self):
+    def create_nodes(self,board = "mainBoard"):
         for i in range(10):
             for j in range(10):
+                if board == "mainBoard":
+                    types  = mainBoard
+                else:
+                    types = board
+
                 if i == 0:
                     self.nodes[i][j].q[1] = np.NINF
                 elif i == 9:
@@ -199,7 +204,7 @@ class Board:
         self.blocks.append(blockObj)
         self.blocksObject.add(blockObj)
 
-    def reset(self,iters):
+    def reset(self,iters,board):
         self.seenNodes = []
         self.lastState = None
         self.curentState = (0,0)
@@ -213,7 +218,7 @@ class Board:
         self.targetObject = pygame.sprite.Group()
         self.targetObject.add(self.target)
 
-        self.create_nodes()
+        self.create_nodes(board)
         self.screen = pygame.display.set_mode([self.w, self.h])
         self.frameIter = 0
         self.player.score = 0

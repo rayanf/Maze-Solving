@@ -49,20 +49,20 @@ class Board:
         self.currentState = (0,0)
         self.seenNodes = []
 
-    def resetQtable(self):
+    def resetQtable(self,name):
         self.Qtable = np.zeros((10,10,4))
         arr_reshaped = self.Qtable.reshape(self.Qtable.shape[0], -1)
-        np.savetxt('Qtable.txt', arr_reshaped)
+        np.savetxt('qtables/{}.txt'.format(name), arr_reshaped)
 
-    def saveQtable(self):
-        pygame.image.save(self.screen, "screenshot.jpg")
+    def saveQtable(self,name):
+        pygame.image.save(self.screen, "screens/{}.jpg".format(name))
         self.Qtable = [[self.nodes[i][j].q for j in range(10)] for i in range(10)]
         self.Qtable = np.array(self.Qtable)
         arr_reshaped = self.Qtable.reshape(self.Qtable.shape[0], -1)
-        np.savetxt('Qtable.txt', arr_reshaped)
+        np.savetxt('qtables/{}.txt'.format(name), arr_reshaped)
 
-    def loadQtable(self):
-        self.Qtable = np.loadtxt('Qtable.txt')
+    def loadQtable(self,name):
+        self.Qtable = np.loadtxt('qtables/{}.txt'.format(name))
         self.Qtable = self.Qtable.reshape(10,10,4)
         for i in range(10):
             for j in range(10):
@@ -111,16 +111,28 @@ class Board:
         if self.rich_flag():
             reward += self.flag_reward
             flag = True
+
         if self.rich_target():
-            reward += self.target_reward
+            reward += 1 - (len(self.flags)/7)
             target = True
+
         if self.back_move():
             reward += self.back_punishment 
+
         if self.been_move():
             reward += self.been_punishment
 
+        # if self.target_withOut_flag():
+        #     reward -= self.target_reward * 2
+        #     target = True
+
         return reward,flag,target
-            
+        
+    def target_withOut_flag(self):
+        if self.rich_target() and len(self.flags) != 0:
+            return True
+        else: return False
+
     def been_move(self):
         if self.currentState in self.seenNodes:
             return True

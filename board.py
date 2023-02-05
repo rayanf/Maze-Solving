@@ -3,7 +3,7 @@ import sys
 import random
 import networkx as nx
 import numpy as np
-from boardCoordinate import *
+from envCoordinates.boardCoordinate import *
 import json
 
 

@@ -13,19 +13,35 @@ gamma = 0.3
 step_treshhold = 20
 iters = 0
 
-name = 'normilize_test'
 
-def play(iters):
+def play(iters,name):
+    """
+        this function is the main function of the game and it is responsible for the game loop and training the agent
+    Args:
+        iters (int): number of iterations that agent has been trained
+        name (str): name of the Qtable file
+    """
+
+
+    # game is the object of the class Board which is responsible for the game logic and visualise the board
     game = Board(walk_punishment,flag_reward,target_reward,back_punishment,been_punishment,alpha,gamma)
+    
+    # game reset function is responsible for reseting the game's attr
     game.reset(iters)
     
-    game.resetQtable(name)
+    # this function is responsible for creating the zeros Qtable. if we want to train agent from first place
+    # game.resetQtable()
     
+    # this function is responsible for loading the Qtable from the file. if we want to train agent from the last place
     # game.loadQtable()
+
+    # agent is the object of the class Agent which is responsible for the agent's actions and choices
     agent = Agent(game)
 
     
+    # steps is variable that is responsible for the number of steps that agent has been moved in this iteration
     step = 0
+    # main loop of code that is responsible for the training agent for infinite times
     while True:
         step += 1 
 
@@ -34,19 +50,24 @@ def play(iters):
         action = agent.make_action(state,choices,iters)
         flag,target = game.run(action,step,iters)
         
+        # if agent has been moved to the flag then it could move 15 more step in this iteration
         if flag :
             step -= 15
-            
+        
+        # if agent has been moved to the target then it game should be reset
         if target:
             step = -np.NINF
+        # agent's step never should be more than 20. for avoiding infinite loop 
         if step > step_treshhold:
             iters += 1
             game.saveQtable(name)
             game.reset(iters)
             step = 0
 
-    
 
+'''
+    this function is responsible for printing the Qtable
+'''
 def printQtable(qTable):
     Qtable = np.loadtxt('{}.txt'.format(qTable))
     Qtable = Qtable.reshape(10,10,4)
@@ -57,18 +78,21 @@ def printQtable(qTable):
             print(Qtable[i][j])
         print()
 
+# Class for agent. responsible for agent's actions and choices
 class Agent:
     def __init__(self,game):
         self.game = game
         self.qTable = None
         self.choices = ['left','up','right','down']
 
+    # this function is responsible for getting the state that agent is in. state is the board at the moment
     def get_state(self):
         cords = self.game.player.rect.center
         i = (cords[0] - 30) // 60
         j = (cords[1] - 30) // 60
         return self.game.nodes[j][i]
-    
+
+    # return the possible choices that agent can move 
     def get_choices(self,state):
         i = state.j
         j = state.i
@@ -105,7 +129,8 @@ class Agent:
 
         return choices
  
- 
+    # this function is responsible for making the action for agent. it is responsible for choosing the best action recording to the Qtable
+    # or move randomly for exploring the environment
     def make_action(self,state,choices,iters):
         if random.randint(0,500) < 200 - iters:
             action = random.choice(choices)
@@ -130,6 +155,7 @@ class Agent:
 
         return action
 
+# this function is responsible for generating the random environment and board for task assignment
 def generate_random_env():
     env = np.ones((10,10),dtype=int)
     for i in range(10):
@@ -145,6 +171,7 @@ def generate_random_env():
 
     return env
 
+# this function is responsible for training the agent for random environment for task assignment
 def train_random(iters,board,randomName):
     game = Board(walk_punishment,flag_reward,target_reward,back_punishment,been_punishment,alpha,gamma,board)
     game.reset(iters,board)
@@ -180,7 +207,7 @@ def train_random(iters,board,randomName):
 
 if __name__ == "__main__":
 
-    board = generate_random_env()
-    train_random(iters,board,'random')
-    # play(iters)
-    # printQtable('Qtable')
+    # board = generate_random_env()
+    # train_random(iters,board,'random')
+    play(iters,'Qtable')
+    printQtable('Qtable')

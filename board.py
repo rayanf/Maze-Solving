@@ -7,13 +7,18 @@ from envCoordinates.boardCoordinate import *
 import json
 
 
+# main class for the game
+# this class is responsible for game logic and visualise the board
+# update qtable and agent's reward and punishment
 class Board:
     def __init__(self,walk_punishment,flag_reward,target_reward,back_punishment,been_punishment,alpha,gamma,boardname):
+        # this variable is amount of punishment and reward that agent has been punished for each moving
         self.walk_punishment = walk_punishment
         self.flag_reward = flag_reward
         self.target_reward = target_reward
         self.back_punishment = back_punishment
         self.been_punishment = been_punishment
+        # alpha gamma param for qlearning
         self.alpha = alpha
         self.gamma = gamma
     
@@ -26,34 +31,43 @@ class Board:
         self.screen = pygame.display.set_mode((self.w, self.h))
         self.clock = pygame.time.Clock()
 
+        # player object and position in the board
         self.player = Player([30,30])
         self.playerGp = pygame.sprite.Group()
         self.playerGp.add(self.player)
 
+        # flags object and position in the board
         self.flags = []
         self.flagsObject = pygame.sprite.Group()
 
+        # blocks object and position in the board
         self.blocks = []
         self.blocksObject = pygame.sprite.Group()
 
+        # target object and position in the board
         self.target = Target([570,570])
         self.targetObject = pygame.sprite.Group()
         self.targetObject.add(self.target)
 
-        self.v_values = np.zeros((10,10))
+        # last state that agent has been in before last move
         self.lastState = None
-        
+
+        # nodes object of the board graph
         self.nodes = [[Node(i,j) for i in range(10)] for j in range(10)]
+        # load environment from the file
         self.create_nodes(boardname)
         
+        # start postion of the agent
         self.currentState = (0,0)
         self.seenNodes = []
-
+    
+    # make new file for qtables with zero values 
     def resetQtable(self,name):
         self.Qtable = np.zeros((10,10,4))
         arr_reshaped = self.Qtable.reshape(self.Qtable.shape[0], -1)
         np.savetxt('qtables/{}.txt'.format(name), arr_reshaped)
-
+    
+    # save current qtable to the file
     def saveQtable(self,name):
         pygame.image.save(self.screen, "screens/{}.jpg".format(name))
         self.Qtable = [[self.nodes[i][j].q for j in range(10)] for i in range(10)]
@@ -61,6 +75,7 @@ class Board:
         arr_reshaped = self.Qtable.reshape(self.Qtable.shape[0], -1)
         np.savetxt('qtables/{}.txt'.format(name), arr_reshaped)
 
+    # load qtable from the file
     def loadQtable(self,name):
         self.Qtable = np.loadtxt('qtables/{}.txt'.format(name))
         self.Qtable = self.Qtable.reshape(10,10,4)
@@ -68,7 +83,11 @@ class Board:
             for j in range(10):
                 self.nodes[i][j].q = self.Qtable[(i,j)]
 
-
+    # this function is responsible for one move of agent
+    # it takes direction as input
+    # its update current position of agent
+    # update qtable
+    # and return if agent has reached the target and flag or not
     def run(self,direction,step,iters):
         self.seenNodes.append(self.currentState)
         self.lastlastState = self.lastState
@@ -78,13 +97,14 @@ class Board:
         flag,target = self.update_qValues(direction)
 
         if flag:
-            self.player.score += 1
+            self.player.score += self.flag_reward
             self.remove_flag()
         
 
         self.update_screen(step,iters)
         return flag,target
 
+    # this function is responsible for update the qtable acording to rewards
     def update_qValues(self,direction):
         r,flag,target = self.getActionReward()
         currentQ = self.nodes[self.lastState[0]][self.lastState[1]].q[self.getActionIndex(direction)]
@@ -93,6 +113,7 @@ class Board:
         self.nodes[self.lastState[0]][self.lastState[1]].q[self.getActionIndex(direction)] = newQ
         return flag,target
 
+    # this function is responsible for turn direction to index of choise in qtable
     def getActionIndex(self,direction):
         if direction == 'left':
             return 0
@@ -103,6 +124,8 @@ class Board:
         elif direction == 'down':
             return 3
 
+    # this function return agent's reward
+    # according to rewards and policy
     def getActionReward(self):
         flag = False
         target = False
@@ -127,17 +150,20 @@ class Board:
         #     target = True
 
         return reward,flag,target
-        
+    
+    # check if agent reach target without see all flags
     def target_withOut_flag(self):
         if self.rich_target() and len(self.flags) != 0:
             return True
         else: return False
 
+    # check that agent has been in this state before in this itteration
     def been_move(self):
         if self.currentState in self.seenNodes:
             return True
         else: return False
 
+    # check if agetn see the flag or not, if yes unseen it
     def remove_flag(self):  
         for i in range(len(self.flags)):
             if self.flags[i].rect.center == self.player.rect.center:
@@ -147,22 +173,26 @@ class Board:
                 self.flags.pop(i)
                 self.nodes[jj][ii].type = "way"
                 break
-
+    
+    # check if agent see any flag or not
     def rich_flag(self):
         if  pygame.sprite.spritecollide(self.player, self.flagsObject, True):
             return True
         else: return False
 
+    # check if agent see the target or not
     def rich_target(self):
         if  pygame.sprite.spritecollide(self.player, self.targetObject, False):
             return True
         else: return False
 
+    # check if agent move back or not
     def back_move(self):
         if self.lastlastState == self.currentState:
             return True
         else: return False
 
+    # this function is responsible for set type of each node
     def create_nodes(self,board = "mainBoard"):
         for i in range(10):
             for j in range(10):
@@ -193,17 +223,20 @@ class Board:
                     self.create_block(ItoC(j+1,i+1))
                 elif types[i][j] == 4:
                     self.nodes[i][j].type = "target"
-                    
+
+    # this function is responsible for create flag object and add it to flags list 
     def create_flag(self,pos):
         flagObj = Flag(pos)
         self.flags.append(flagObj)
         self.flagsObject.add(flagObj)
 
+    # this function is responsible for create block object and add it to blocks list
     def create_block(self,pos):
         blockObj = Block(pos)
         self.blocks.append(blockObj)
         self.blocksObject.add(blockObj)
 
+    # this function is responsible for reset game after each itteration
     def reset(self,iters,board):
         self.seenNodes = []
         self.lastState = None
@@ -224,6 +257,7 @@ class Board:
         self.player.score = 0
         self.update_screen(0,iters)
 
+    # this function is responsible for update screen after each move   
     def update_screen(self,step,iters):
         self.screen = pygame.display.set_mode([self.w, self.h])
         self.screen.fill((112, 146, 190))
@@ -247,12 +281,13 @@ class Board:
         pygame.display.update()  
         pygame.display.flip()   
 
+    # this function is responsible for draw borders of each node
     def draw_borders(self):
         for i in range(9):
             pygame.draw.line(self.screen, (0,0,0), ((i+1)*60,0),((i+1)*60,600) , 1)
             pygame.draw.line(self.screen, (0,0,0), (0,(i+1)*60),(600,(i+1)*60) , 1)
 
-
+    # this function is responsible for write q value of each node in display
     def write_q(self):
         for i in range(10):
             for j in range(10):
@@ -260,7 +295,7 @@ class Board:
                 direction =np.argmax(node.q)
                 if node.type == "block":   
                     continue
-
+                
                 if direction == 0:
                     leftQ = pygame.font.SysFont("comicsansms", 10).render("{:.2f}".format(node.q[0]), True, (255, 255, 255))
                 else:
@@ -286,12 +321,13 @@ class Board:
                 self.screen.blit(downQ, [node.x-5,node.y+15])
 
 
-    def write_v(self):
-        for i in range(10):
-            for j in range(10):
-                v_value = pygame.font.SysFont("comicsansms", 15).render(str(self.v_values[i,j]), True, (0, 0, 0))
-                self.screen.blit(v_value, [j*60+15, i*60+15])
+    # def write_v(self):
+    #     for i in range(10):
+    #         for j in range(10):
+    #             v_value = pygame.font.SysFont("comicsansms", 15).render(str(self.v_values[i,j]), True, (0, 0, 0))
+    #             self.screen.blit(v_value, [j*60+15, i*60+15])
 
+# Class for player responsible for player movement and position
 class Player(pygame.sprite.Sprite):
     def __init__(self,position):
         pygame.sprite.Sprite.__init__(self)
@@ -314,6 +350,8 @@ class Player(pygame.sprite.Sprite):
         elif direction == "down":
             self.rect.y += 60
 
+
+# Class for flag responsible for flag positions
 class Flag(pygame.sprite.Sprite):
     def __init__(self,position):
         pygame.sprite.Sprite.__init__(self)
@@ -323,6 +361,7 @@ class Flag(pygame.sprite.Sprite):
         self.rect.center = position
 
 
+# Class for block responsible for block positions
 class Block(pygame.sprite.Sprite):
     def __init__(self,position):
         pygame.sprite.Sprite.__init__(self)
@@ -331,6 +370,8 @@ class Block(pygame.sprite.Sprite):
         self.image.fill((64, 61, 56))
         self.rect.center = position
 
+
+# Class for target responsible for target positions
 class Target(pygame.sprite.Sprite):
     def __init__(self,position):
         pygame.sprite.Sprite.__init__(self)
@@ -340,12 +381,16 @@ class Target(pygame.sprite.Sprite):
         self.rect.center = position
 
 
+# this function is responsible for change i,j of node to x,y of display
 def ItoC(i,j):
     return (i*60-30,j*60-30)
 
+# this function is responsible for change x,y of display to i,j of node
 def CtoI(x,y):
     return ((x-30)//60,(y-30)//60)
 
+
+# class node is responsible for each node in grid. it keeps position of each node, type of node and q values.
 class Node:
     def __init__(self,i,j):
         self.x = i*60+30
